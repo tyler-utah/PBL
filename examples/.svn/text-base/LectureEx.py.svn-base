@@ -1,0 +1,27 @@
+#! /usr/bin/env python2.6
+
+import copy
+import sys
+sys.path.append("../include/")
+import PyBool_public_interface as Bool
+import PyBool_builder as BoolB
+import pdb
+
+#Good example to demo PyBool. Step through with pdb, and print
+#variables at each stage. For the recursive representations (expr and expr2)
+#use Bool.print_expr(expr) for pretty printing. Uses very simple DIMACS
+#file example_dimacs_files/lecture.cnf
+if __name__ == "__main__":
+    pdb.set_trace()
+    clauses = Bool.parse_dimacs("example_dimacs_files/lecture.cnf")
+    clauses = clauses["clauses"]
+    expr = Bool.cnf_to_rec(clauses)
+    expr = BoolB.mk_neg_expr(expr)
+
+    expr2 = copy.deepcopy(expr)
+
+    expr = Bool.nne(expr)
+    expr = Bool.exp_cnf(expr)
+    
+    expr2 = Bool.poly_cnf(expr2)
+    clauses = Bool.cnf_list(expr2)
