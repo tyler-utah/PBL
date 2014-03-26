@@ -56,6 +56,35 @@ def print_expr(expr):
               (lambda expr: expr["type"] is "eqv"       ,     lambda expr: print_eqv_expr(expr))
              ])
 
+def rename_var(expr, tup):
+    two_args = ["eqv", "xor", "impl", "or", "and"]
+    one_arg = ["neg"]
+
+    return match_2_arg(expr,
+            [
+              (lambda expr: expr["type"] in two_args    ,     lambda expr,tup: rename_var_two_args(expr,tup)),
+              (lambda expr: expr["type"] in one_arg     ,     lambda expr,tup: rename_var_one_arg(expr,tup))  ,
+              (lambda expr: expr["type"] is "const"       ,     lambda expr,tup: expr)  ,
+              (lambda expr: expr["type"] is "var"       ,     lambda expr,tup: rename_var_var(expr,tup))
+             ], tup)
+
+def rename_var_two_args(expr,tup):
+    x = rename_var(expr["expr1"],tup)
+    y = rename_var(expr["expr2"],tup)
+    expr["expr1"] = x
+    expr["expr2"] = y
+    return expr
+
+def rename_var_one_arg(expr,tup):
+    expr["expr"] = rename_var(expr["expr"],tup)
+    return expr
+
+def rename_var_var(expr,tup):
+    if tup[0] == expr["name"][0]:
+        return mk_var_expr(tup[1])
+    else: 
+        return expr
+
 #Specific functions for printing
 def print_const_expr(expr):
     return str(expr["value"])
@@ -229,13 +258,6 @@ def propagate_var(expr,tup):
     if tup[0] == expr["name"][0]:
         return mk_const_expr(tup[1])
     return expr
-
-#NOT NEEDED (used to support variable look-up by integer, didn't work out.
-#@prioritized_when(propagate, "expr[\"type\"] == \"var\" and type(tup[0]) is IntType")
-#def propagate_var2(expr,tup):
-#    if tup[0] == expr["name"][1]:
-#        return mk_const_expr(tup[1])
-#    return expr
 
 def propagate_neg(expr,tup):
     x = propagate(expr["expr"], tup)

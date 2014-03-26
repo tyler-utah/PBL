@@ -9,6 +9,8 @@
 
 import PyBool_algorithms as PBA
 import PyBool_builder as PBB
+import copy
+import pdb
 
 #note: This is the public interface, so while
 #some of the calls look redundant, it is in this
@@ -44,6 +46,22 @@ def print_expr(expr):
     prints a readable string representing the expression EXPR
     """
     return PBA.print_expr(expr)
+
+def rename_var(expr, tup):
+    """
+    given a tup (var1, var2) replaces var1 in expr with var2
+    """
+    cop_expr = copy.deepcopy(expr)
+    return PBA.rename_var(cop_expr, tup)
+
+def rename_var_list(expr, tup_list):
+    """
+    given a tup (var1, var2) replaces var1 in expr with var2
+    """
+    for tup in tup_list:
+        expr = rename_var(expr, tup)
+    return expr
+
 
 def nne(expr):
     """

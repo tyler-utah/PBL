@@ -7,8 +7,12 @@
 import ply.lex  as lex
 import ply.yacc as yacc
 import pdb
+import itertools
 from PyBool_builder import *
 from PyBool_public_interface import Parse_Error
+from PyBool_public_interface import rename_var
+from PyBool_public_interface import rename_var_list
+from PyBool_public_interface import print_expr
 
 #############################################
 #Lex
@@ -18,7 +22,9 @@ from PyBool_public_interface import Parse_Error
 reserved = {
    'XOR'       : 'XOROP'   ,
    'Var_Order' : 'VARORDER',
-   'Main_Exp'  : 'MAINEXP'
+   'Main_Exp'  : 'MAINEXP',
+   'exists'     : 'EXISTS',
+   'exists_excl' : 'EXISTS_EXCL'
 }
 
 tokens = ["CONST"     ,
@@ -32,6 +38,7 @@ tokens = ["CONST"     ,
           "NOTOP"     ,
           "ASSIGNOP"  ,
           "COLON"     ,
+          "DOT"       ,
           ] + list(reserved.values()) #adding listed of reserved val
 
 #Defining simple tokens
@@ -47,6 +54,7 @@ t_NOTOP      = "~|!"
 t_VARIABLE   = "[a-zA-Z2-9][a-zA-Z0-9_]*"
 t_ASSIGNOP   = "="
 t_COLON      = ":"
+t_DOT        = "\."
 
 t_ignore         = ' ;\t\n\r,'
 t_ignore_COMMENT = r'\#.*'
@@ -95,7 +103,8 @@ def p_start(p):
 
     global main_expr 
     global sub_expr
-    
+    global var_order
+
     #ignore comments
     if p[1] == "COMMENT":
         return
@@ -107,6 +116,11 @@ def p_start(p):
     #if it was the main expression record it.
     elif p[1] == "Main_Exp":
         main_expr = p[3]
+
+    #if it was the main expression record it.
+    elif p[1] == "Var_Order":
+        var_order = var_order + p[3]
+
 
 #Rules for all the expressions (mostly using PyBool_builder)
 def p_expression_paren(p):
@@ -136,6 +150,17 @@ def p_expression_impl(p):
 def p_expression_eqv(p):
     '''expression : expression EQOP expression'''
     p[0] = mk_eqv_expr(p[1], p[3])
+
+def p_expression_exists(p):    
+    '''expression : EXISTS VARIABLE DOT LPAREN expression RPAREN'''
+    q = [rename_var(p[5], (p[2],var)) for var in var_order]
+    p[0] = reduce(lambda x,y: mk_or_expr(x,y), q)
+
+def p_expression_exists_excl(p):    
+    '''expression : EXISTS_EXCL variableList DOT LPAREN expression RPAREN'''
+    q = [rename_var_list(p[5],zip(p[2],perm)) for perm in itertools.permutations(var_order, len(p[2]))]
+    p[0] = reduce(lambda x,y: mk_or_expr(x,y), q)
+
 
 #Variable is the only hard one
 def p_expression_var(p):
@@ -169,24 +194,18 @@ def p_empty(p):
 #Used for the optional variable list (it is illegal to 
 #declare a variable twice in the variable ordering)
 def p_variableList(p):
-    '''variableList : variableList VARIABLE
+    '''variableList : VARIABLE variableList
                     | VARIABLE'''
     if len(p) == 3:
-        if p[2] in var_order:
-            raise Parse_Error(p[2] + " declared multiple times in " +\
+        if p[1] in var_order:
+            raise Parse_Error(p[1] + " declared multiple times in " +\
                       "Var_Order")
-#            print("ERROR: " + p[2] + " declared multiple times in " +\
-#                      "Variable ordering")
-#            sys.exit(0)
-        var_order.append(p[2])
+        p[0] = [p[1]] + p[2]
     else:
         if p[1] in var_order:
             raise Parse_Error(p[1] + " declared multiple times in " +\
                       "Var_Order")
-#            print("ERROR: " + p[1] + " declared multiple times in " +\
-#                      "Variable ordering")
-#            sys.exit(0)
-        var_order.append(p[1])
+        p[0] = [p[1]]
 
 # Error rule for syntax errors
 def p_error(p):
