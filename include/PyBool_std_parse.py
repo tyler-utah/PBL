@@ -29,6 +29,8 @@ reserved = {
 
 tokens = ["CONST"     ,
           "VARIABLE"  ,
+          "LBRAC"    ,
+          "RBRAC"    ,
           "LPAREN"    ,
           "RPAREN"    ,
           "OROP"      ,
@@ -45,6 +47,8 @@ tokens = ["CONST"     ,
 t_CONST      = "0|1"
 t_LPAREN     = "\("
 t_RPAREN     = "\)"
+t_LBRAC     = "\["
+t_RBRAC     = "\]"
 t_OROP       = "\|?\|"
 t_ANDOP      = "&?&"
 t_XOROP      = "XOR"
@@ -91,6 +95,7 @@ precedence = (
     ('left' , 'OROP'     ),
     ('left' , 'ANDOP'    ),
     ('left' , 'NOTOP'    ),
+    ('left' , 'LBRAC', 'RBRAC'),
     ('left' , 'LPAREN', 'RPAREN')
 )
 
@@ -119,7 +124,8 @@ def p_start(p):
 
     #if it was the main expression record it.
     elif p[1] == "Var_Order":
-        var_order = var_order + p[3]
+        #get rid of duplicates
+        var_order = list(set(var_order + p[3]))
 
 
 #Rules for all the expressions (mostly using PyBool_builder)
@@ -161,6 +167,16 @@ def p_expression_exists_excl(p):
     q = [rename_var_list(p[5],zip(p[2],perm)) for perm in itertools.permutations(var_order, len(p[2]))]
     p[0] = reduce(lambda x,y: mk_or_expr(x,y), q)
 
+def p_expression_rename(p):
+    '''expression : VARIABLE LBRAC variableList COLON ASSIGNOP variableList RBRAC'''
+    dom = sub_expr.keys()
+    if p[1] in dom:
+        expr = sub_expr[p[1]]
+        p[0] = rename_var_list(expr,zip(p[3],p[6]))
+    else:
+        raise Parse_Error("Expression: " + p[1] + " is not declared. Line Number: " + str(line_num))
+
+
 
 #Variable is the only hard one
 def p_expression_var(p):
@@ -197,16 +213,10 @@ def p_variableList(p):
     '''variableList : VARIABLE variableList
                     | VARIABLE'''
     if len(p) == 3:
-        if p[1] in var_order:
-            raise Parse_Error(p[1] + " declared multiple times in " +\
-                      "Var_Order")
         p[0] = [p[1]] + p[2]
     else:
-        if p[1] in var_order:
-            raise Parse_Error(p[1] + " declared multiple times in " +\
-                      "Var_Order")
         p[0] = [p[1]]
-
+        
 # Error rule for syntax errors
 def p_error(p):
     raise Parse_Error("Unable to parse line number " + str(line_num))
