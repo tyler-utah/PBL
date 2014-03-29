@@ -99,6 +99,11 @@ precedence = (
     ('left' , 'LPAREN', 'RPAREN')
 )
 
+def remove_dups(seq):
+    seen = set()
+    seen_add = seen.add
+    return [ x for x in seq if x not in seen and not seen_add(x)]
+
 #Start state
 def p_start(p):
     '''start : VARORDER COLON variableList
@@ -124,8 +129,8 @@ def p_start(p):
 
     #if it was the main expression record it.
     elif p[1] == "Var_Order":
-        #get rid of duplicates
-        var_order = list(set(var_order + p[3]))
+        #get rid of duplicates        
+        var_order = remove_dups(var_order + p[3])
 
 
 #Rules for all the expressions (mostly using PyBool_builder)
