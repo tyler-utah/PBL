@@ -477,6 +477,7 @@ def exp_cnf_same(expr):
     return expr
 
 def exp_cnf_and(expr):
+    
     return mk_and_expr(exp_cnf(expr["expr1"]), exp_cnf(expr["expr2"]))
 
 def exp_cnf_or(expr):
@@ -486,22 +487,23 @@ def exp_cnf_or(expr):
         
 #    while expr["expr2"]["type"] == "paren":
 #        expr["expr2"] = expr["expr2"]["expr"]
+    TF1 = exp_cnf(expr["expr1"])
+    TF2 = exp_cnf(expr["expr2"])
 
-
-    if expr["expr1"]["type"] == "and":
-        F1 = exp_cnf(expr["expr1"]["expr1"])
-        F2 = exp_cnf(expr["expr1"]["expr2"])
-        F3 = exp_cnf(expr["expr2"])
+    if TF1["type"] == "and":
+        F1 = (TF1["expr1"])
+        F2 = (TF1["expr2"])
+        F3 = (TF2)
         
         F4 = exp_cnf(mk_or_expr(F1,F3))
         F5 = exp_cnf(mk_or_expr(F2,F3))
         
         return mk_and_expr(F4, F5)
     
-    if expr["expr2"]["type"] == "and":
-        F1 = exp_cnf(expr["expr1"])
-        F2 = exp_cnf(expr["expr2"]["expr1"])
-        F3 = exp_cnf(expr["expr2"]["expr2"])
+    if TF2["type"] == "and":
+        F1 = (TF1)
+        F2 = (TF2["expr1"])
+        F3 = (TF2["expr2"])
         
         F4 = exp_cnf(mk_or_expr(F1,F2))
         F5 = exp_cnf(mk_or_expr(F1,F3))
@@ -509,7 +511,7 @@ def exp_cnf_or(expr):
         return mk_and_expr(F4, F5)
     
     else:
-        return mk_or_expr(exp_cnf(expr["expr1"]), exp_cnf(expr["expr2"]))
+        return mk_or_expr(TF1, TF2)
 
 ############################################################
 #en
